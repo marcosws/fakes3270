@@ -142,6 +142,11 @@ def login(s):
     s.send("Enter")
 
 
+def select_menu(s, option):
+    send_text_by_field(s, "Opcao ==>", option)
+    s.send("Enter")
+
+
 def run(binary):
     # ---- sessao / protocolo ----
     s = Session(binary)
@@ -162,7 +167,8 @@ def run(binary):
     check("sendTextByField digita no campo apos o atributo", "Userid: TESTE" in get_screen(s).replace("  ", " "),
           get_screen(s).split("\n")[4])
     send_text_by_field(s, "Password:", "1234")
-    check("campo senha oculto no Ascii", "1234" not in get_screen(s))
+    password_line = next(line for line in get_screen(s).split("\n") if "Password:" in line)
+    check("campo senha oculto no Ascii", "1234" not in password_line, password_line)
     s.send("Enter")
     check("Enter -> MENU", has(s, "MENU PRINCIPAL"))
     check("variavel ${user} da tela anterior", has(s, "Usuario: TESTE"))
@@ -180,8 +186,7 @@ def run(binary):
     send_text_by_field(s, "Userid:", "TESTE")
     send_text_by_field(s, "Password:", "1234")
     s.send("Enter")
-    send_text_by_field(s, "Opcao ==>", "2")
-    s.send("Enter")
+    select_menu(s, "2")
     check("menu 2 -> CADASTRO", has(s, "CADASTRO DE CLIENTE"))
 
     # ---- getText* ----
@@ -208,8 +213,7 @@ def run(binary):
     s.send("PF(3)")
 
     # ---- edicao de campo: EraseEOF / DeleteField / EraseInput / Tab / Home / Backspace ----
-    send_text_by_field(s, "Opcao ==>", "2")
-    s.send("Enter")                                           # CADASTRO
+    select_menu(s, "2")                                       # CADASTRO
     s.send("Home()")
     s.send('String("ABCDEFG")')
     check("Home() + String() no 1o campo", has(s, "Nome: ABCDEFG"))
@@ -252,8 +256,7 @@ def run(binary):
     check("PF(3) volta ao MENU", has(s, "MENU PRINCIPAL"))
 
     # ---- transicao lenta: Wait(Unlock) / typeahead ----
-    send_text_by_field(s, "Opcao ==>", "3")
-    s.send("Enter")
+    select_menu(s, "3")
     check("host ainda processando: tela antiga e teclado 'L'",
           has(s, "MENU PRINCIPAL") and s.send("Ascii(0,0,1)").split("\n")[1].startswith("L "))
     check("Wait(0,Unlock) estoura enquanto o host processa", s.fails("Wait(0,Unlock)"))
@@ -262,8 +265,7 @@ def run(binary):
     check("Wait(Unlock) espera o host (>= ~0.5s)", time.time() - t0 > 0.4, f"{time.time() - t0:.2f}s")
     check("depois do Unlock: nova tela", has(s, "RELATORIO GERADO COM SUCESSO"))
     s.send("PF(3)")
-    send_text_by_field(s, "Opcao ==>", "3")
-    s.send("Enter")
+    select_menu(s, "3")
     s.send("PF(3)")                                           # typeahead: espera e executa sobre RELATORIO
     check("typeahead: PF(3) apos Enter lento volta ao MENU", has(s, "MENU PRINCIPAL"))
 
@@ -277,10 +279,49 @@ def run(binary):
     check("Wait(Seconds) sem tempo -> error", s.fails("Wait(Seconds)"))
     check("Wait(tipo invalido) -> error", s.fails("Wait(Foo)"))
 
-    # ---- encerrar ----
-    send_text_by_field(s, "Opcao ==>", "4")
+    # ---- telas adicionadas ao cenario padrao ----
+    select_menu(s, "4")
+    check("menu 4 -> VALIDACAO", has(s, "TESTE RIGHT / LEFT / TOP / BOTTOM"))
+    check("VALIDACAO getTextByField('RightLbl:', 8)",
+          get_text_by_field(s, "RightLbl:", 8) == "VALRIGHT")
+    check("VALIDACAO getTextBeforeField('LeftLbl:', 8)",
+          get_text_before_field(s, "LeftLbl:", 8).strip() == "VALLEFT",
+          repr(get_text_before_field(s, "LeftLbl:", 8)))
+    check("VALIDACAO getTextTopField('BottomVal', 6, 1)",
+          get_text_top_field(s, "BottomVal", 6, 1) == "TopLbl")
+    check("VALIDACAO getTextBottonField('TopLbl', 9, 1)",
+          get_text_bottom_field(s, "TopLbl", 9, 1) == "BottomVal")
+    send_text_by_field(s, "InputR:", "ABC")
+    send_text_by_field(s, "InputL:", "DEF")
+    send_text_by_field(s, "Descricao:", "TESTE DE CONTRATO")
     s.send("Enter")
-    check("opcao 4 desconecta", "not-connected" in s.send("Query(ConnectionState)"))
+    check("VALIDACAO preserva dados digitados", has(s, "InputR: ABC") and has(s, "InputL: DEF") and
+          has(s, "Descricao: TESTE DE CONTRATO"))
+    s.send("PF(3)")
+
+    select_menu(s, "5")
+    check("menu 5 -> TABELA", has(s, "LISTA DE CLIENTES") and has(s, "00001  JOAO DA SILVA"))
+    s.send("PF(3)")
+
+    select_menu(s, "6")
+    check("menu 6 -> EXTRATO", has(s, "EXTRATO BANCARIO") and has(s, "CREDITO SALARIO"))
+    s.send("PF(3)")
+
+    select_menu(s, "7")
+    check("menu 7 -> TRANSFERENCIA", has(s, "TRANSFERENCIA ENTRE CONTAS"))
+    s.send("Enter")
+    check("TRANSFERENCIA exige conta e valor", has(s, "INFORME CONTA E VALOR"))
+    send_text_by_field(s, "Conta destino:", "000456-7")
+    send_text_by_field(s, "Valor:", "150,00")
+    send_text_by_field(s, "Obs:", "PAGAMENTO")
+    s.send("Enter")
+    check("TRANSFERENCIA confirma valores", has(s, "Conta: 000456-7") and has(s, "Valor: 150,00") and
+          has(s, "Obs: PAGAMENTO"))
+    s.send("PF(3)")
+
+    # ---- encerrar ----
+    select_menu(s, "8")
+    check("opcao 8 desconecta", "not-connected" in s.send("Query(ConnectionState)"))
     check("Wait(Disconnect) desconectado -> ok", not s.fails("Wait(Disconnect)"))
     check("Ascii apos desconectar -> error", s.fails("Ascii()"))
     s.send("connect(outro:23)")

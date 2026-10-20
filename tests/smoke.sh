@@ -18,12 +18,33 @@ check "status conectado"        "$out" "U F U C(localhost:23) I 2 24 80"
 out=$(run 'Connect(h)\nString("TESTE")\nTab\nString("1234")\nEnter\nAscii(1,24,14)\nQuit\n')
 check "login valido -> menu" "$out" "data: MENU PRINCIPAL"
 
-out=$(run 'Connect(h)\nString("ERRADO")\nEnter\nAscii(22,1,15)\nQuit\n')
+out=$(run 'Connect(h)\nString("ERRADO")\nTab\nString("1234")\nEnter\nAscii(22,1,40)\nQuit\n')
 check "login invalido"  "$out" "data: LOGIN INVALIDO"
+
+out=$(run 'Connect(h)\nString("BLOQUEADO")\nTab\nString("1234")\nEnter\nAscii(22,1,40)\nQuit\n')
+check "usuario bloqueado" "$out" "data: USUARIO BLOQUEADO - CONTATE O ADMIN"
+
+out=$(run 'Connect(h)\nString("INATIVO")\nTab\nString("1234")\nEnter\nAscii(22,1,40)\nQuit\n')
+check "usuario inativo" "$out" "data: USUARIO DESATIVADO"
 
 out=$(run 'Connect(h)\nString("TESTE")\nTab\nString("1234")\nEnter\nAscii(1,1,20,4)\nQuit\n' | head -40)
 check "senha nao aparece"  "$out" "ok"
 if printf '%s' "$out" | grep -q 1234; then echo "FAIL senha vazou na tela"; fail=1; else echo "OK   senha oculta"; fi
+
+out=$(run 'Connect(h)\nString("TESTE")\nTab\nString("1234")\nEnter\nString("4")\nEnter\nAscii()\nQuit\n')
+check "menu 4 -> validacao" "$out" "TESTE RIGHT / LEFT / TOP / BOTTOM"
+
+out=$(run 'Connect(h)\nString("TESTE")\nTab\nString("1234")\nEnter\nString("5")\nEnter\nAscii()\nQuit\n')
+check "menu 5 -> tabela" "$out" "LISTA DE CLIENTES"
+
+out=$(run 'Connect(h)\nString("TESTE")\nTab\nString("1234")\nEnter\nString("6")\nEnter\nAscii()\nQuit\n')
+check "menu 6 -> extrato" "$out" "EXTRATO BANCARIO"
+
+out=$(run 'Connect(h)\nString("TESTE")\nTab\nString("1234")\nEnter\nString("7")\nEnter\nAscii()\nQuit\n')
+check "menu 7 -> transferencia" "$out" "TRANSFERENCIA ENTRE CONTAS"
+
+out=$(run 'Connect(h)\nString("TESTE")\nTab\nString("1234")\nEnter\nString("8")\nEnter\nQuery(ConnectionState)\nQuit\n')
+check "menu 8 desconecta" "$out" "data: not-connected"
 
 out=$(run 'Ascii\nEnter\nQuit\n')
 check "sem conexao -> error" "$out" "error"

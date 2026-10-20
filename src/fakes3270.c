@@ -16,6 +16,10 @@
  * Telas vem de um arquivo de cenario (veja docs/FakeS3270.md) ou do cenario embutido.
  * Compila em Linux (gcc/clang) e Windows (mingw-w64/MSVC). Sem dependencias.
  */
+#if !defined(_WIN32) && !defined(_POSIX_C_SOURCE)
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,13 +36,13 @@
 #include <time.h>
 #endif
 
-#define VERSION "2.0"
+#define VERSION "2.1"
 #define ROWS 24
 #define COLS 80
-#define MAX_SCREENS 32
-#define MAX_TEXTS 64
-#define MAX_FIELDS 16
-#define MAX_RULES 32
+#define MAX_SCREENS 48
+#define MAX_TEXTS 96
+#define MAX_FIELDS 24
+#define MAX_RULES 48
 #define MAX_CONDS 4
 #define MAX_VARS 32
 #define MAX_TOK 32
@@ -95,46 +99,94 @@ static FILE *logf = NULL;
 /* Cenario embutido                                                    */
 /* ------------------------------------------------------------------ */
 static const char *default_scenario[] = {
+    /* ============================================================
+     * LOGIN
+     * TESTE/1234     -> OK
+     * BLOQUEADO/1234 -> usuario bloqueado
+     * INATIVO/1234   -> usuario desativado
+     * outros         -> login invalido
+     * ============================================================ */
     "screen LOGIN",
+    "text 1 1 \"FAKE3270 v2.1 - SIMULADOR MAINFRAME\"",
     "text 2 25 \"*** BANCO FAKE - MAINFRAME ***\"",
+    "text 3 20 \"Ambiente de Testes Integracao\"",
     "text 5 10 \"Userid:\"",
-    "field 5 18 8 name=user",
+    "field 5 18 12 name=user",
     "text 6 10 \"Password:\"",
-    "field 6 20 8 name=pass hidden",
-    "text 24 1 \"PF3=SAIR\"",
+    "field 6 20 12 name=pass hidden",
+    "text 8 10 \"Dica: TESTE/1234  BLOQUEADO/1234  INATIVO/1234\"",
+    "text 23 2 \"PF3=SAIR\"",
     "on ENTER user=TESTE pass=1234 goto MENU",
-    "on ENTER goto LOGIN message \"LOGIN INVALIDO\"",
+    "on ENTER user=BLOQUEADO pass=1234 goto LOGIN message \"USUARIO BLOQUEADO - CONTATE O ADMIN\"",
+    "on ENTER user=INATIVO pass=1234 goto LOGIN message \"USUARIO DESATIVADO\"",
+    "on ENTER user=* pass=* goto LOGIN message \"LOGIN INVALIDO\"",
+    "on ENTER goto LOGIN message \"INFORME USERID E PASSWORD\"",
     "on PF3 disconnect",
-    "",
+
+    /* ============================================================
+     * MENU PRINCIPAL
+     * ============================================================ */
     "screen MENU",
+    "text 1 1 \"FAKE3270 - MENU PRINCIPAL\"",
     "text 2 25 \"MENU PRINCIPAL\"",
-    "text 4 10 \"Usuario: ${user}\"",
+    "text 3 10 \"Usuario: ${user}\"",
     "text 5 10 \"1 - SALDO\"",
     "text 6 10 \"2 - CADASTRO\"",
     "text 7 10 \"3 - RELATORIO (LENTO)\"",
-    "text 8 10 \"4 - SAIR\"",
-    "text 10 10 \"Opcao ==>\"",
-    "field 10 20 1 name=opt",
+    "text 8 10 \"4 - VALIDACAO CAMPOS (R/L/T/B)\"",
+    "text 9 10 \"5 - TABELA CLIENTES\"",
+    "text 10 10 \"6 - EXTRATO\"",
+    "text 11 10 \"7 - TRANSFERENCIA\"",
+    "text 12 10 \"8 - SAIR\"",
+    "text 14 10 \"Opcao ==>\"",
+    "field 14 20 1 name=opt",
+    "text 23 2 \"ENTER=CONFIRMA  PF3=LOGIN\"",
     "on ENTER opt=1 goto SALDO",
     "on ENTER opt=2 goto CADASTRO",
     "on ENTER opt=3 goto RELATORIO delay 800",
-    "on ENTER opt=4 disconnect",
+    "on ENTER opt=4 goto VALIDACAO",
+    "on ENTER opt=5 goto TABELA",
+    "on ENTER opt=6 goto EXTRATO",
+    "on ENTER opt=7 goto TRANSFERENCIA",
+    "on ENTER opt=8 disconnect",
     "on ENTER goto MENU message \"OPCAO INVALIDA\"",
     "on PF3 goto LOGIN",
-    "",
+
+    /* ============================================================
+     * SALDO
+     * ============================================================ */
     "screen SALDO",
+    "text 1 1 \"FAKE3270 - CONSULTA DE SALDO\"",
     "text 2 25 \"CONSULTA DE SALDO\"",
-    "text 5 10 \"Saldo atual: R$ 1.234,56\"",
-    "text 24 1 \"PF3=VOLTAR\"",
+    "text 4 10 \"Conta:\"",
+    "text 4 17 \"000123-4\"",
+    "text 5 10 \"Titular:\"",
+    "text 5 19 \"CLIENTE TESTE\"",
+    "text 6 10 \"Saldo atual:\"",
+    "text 6 23 \"R$ 1.234,56\"",
+    "text 7 10 \"Limite:\"",
+    "text 7 18 \"R$ 5.000,00\"",
+    "text 8 10 \"Status:\"",
+    "text 8 18 \"ATIVO\"",
+    "text 23 2 \"PF3=VOLTAR  ENTER=MENU\"",
     "on PF3 goto MENU",
     "on ENTER goto MENU",
-    "",
+
+    /* ============================================================
+     * CADASTRO - campos Right + textos Top/Bottom
+     * getTextByField(\"Status:\", 5) -> ATIVO
+     * getTextByField(\"Situacao:\", 2) -> OK
+     * getTextBeforeField(\"Situacao:\", 8) -> REF-0001
+     * getTextBottonField(\"Codigo\", 6, 1) -> 000123
+     * getTextTopField(\"000123\", 6, 1) -> Codigo
+     * ============================================================ */
     "screen CADASTRO",
+    "text 1 1 \"FAKE3270 - CADASTRO DE CLIENTE\"",
     "text 2 25 \"CADASTRO DE CLIENTE\"",
     "text 4 10 \"Nome:\"",
     "field 4 16 20 name=nome",
     "text 5 10 \"CPF:\"",
-    "field 5 15 11 name=cpf",
+    "field 5 15 14 name=cpf",
     "text 6 10 \"Cidade:\"",
     "field 6 18 15 name=cidade",
     "text 8 10 \"Status:\"",
@@ -144,25 +196,165 @@ static const char *default_scenario[] = {
     "text 13 12 \"REF-0001\"",
     "text 13 20 \"Situacao:\"",
     "text 13 30 \"OK\"",
-    "text 24 1 \"ENTER=GRAVAR PF3=VOLTAR\"",
+    "text 23 2 \"ENTER=GRAVAR  PF3=VOLTAR\"",
     "on ENTER nome=* cpf=* goto CADASTRO_OK",
     "on ENTER goto CADASTRO message \"PREENCHA NOME E CPF\"",
     "on PF3 goto MENU",
-    "",
+
     "screen CADASTRO_OK",
+    "text 1 1 \"FAKE3270 - CLIENTE GRAVADO\"",
     "text 2 25 \"CLIENTE GRAVADO COM SUCESSO\"",
     "text 4 10 \"Nome: ${nome}\"",
     "text 5 10 \"CPF: ${cpf}\"",
     "text 6 10 \"Cidade: ${cidade}\"",
-    "text 24 1 \"PF3=MENU\"",
+    "text 8 10 \"Status:\"",
+    "text 8 18 \"GRAVADO\"",
+    "text 23 2 \"PF3=MENU  ENTER=MENU\"",
     "on PF3 goto MENU",
     "on ENTER goto MENU",
-    "",
+
+    /* ============================================================
+     * RELATORIO (delay - Wait Unlock)
+     * ============================================================ */
     "screen RELATORIO",
+    "text 1 1 \"FAKE3270 - RELATORIO MENSAL\"",
     "text 2 25 \"RELATORIO MENSAL\"",
     "text 5 10 \"RELATORIO GERADO COM SUCESSO\"",
+    "text 6 10 \"Periodo:\"",
+    "text 6 19 \"01/2026 a 10/2026\"",
+    "text 7 10 \"Registros:\"",
+    "text 7 21 \"1.248\"",
+    "text 23 2 \"PF3=MENU  ENTER=MENU\"",
     "on PF3 goto MENU",
     "on ENTER goto MENU",
+
+    /* ============================================================
+     * VALIDACAO - layout dedicado Right / Left / Top / Bottom
+     *
+     * Right:  getTextByField(\"RightLbl:\", 8)  -> VALRIGHT
+     * Left:   getTextBeforeField(\"LeftLbl:\", 8) -> VALLEFT
+     * Top:    getTextTopField(\"BottomVal\", 7, 1) -> TopLbl
+     * Bottom: getTextBottonField(\"TopLbl\", 9, 1) -> BottomVal
+     *
+     * Campos editaveis para Send Text:
+     *   sendTextByField(\"InputR:\", \"ABC\")  etc.
+     * ============================================================ */
+    "screen VALIDACAO",
+    "text 1 1 \"FAKE3270 - VALIDACAO DE CAMPOS\"",
+    "text 2 20 \"TESTE RIGHT / LEFT / TOP / BOTTOM\"",
+
+    "text 4 10 \"RightLbl:\"",
+    "text 4 20 \"VALRIGHT\"",
+    "text 4 40 \"InputR:\"",
+    "field 4 48 10 name=inputr",
+
+    "text 6 10 \"VALLEFT\"",
+    "text 6 18 \"LeftLbl:\"",
+    "text 6 40 \"InputL:\"",
+    "field 6 48 10 name=inputl",
+
+    "text 8 10 \"TopLbl\"",
+    "text 9 10 \"BottomVal\"",
+    "text 8 40 \"InputT:\"",
+    "field 8 48 10 name=inputt",
+    "text 10 40 \"InputB:\"",
+    "field 10 48 10 name=inputb",
+
+    "text 12 10 \"Descricao:\"",
+    "field 12 21 30 name=desc",
+
+    "text 14 10 \"Codigo:\"",
+    "text 15 10 \"XYZ999\"",
+    "text 14 30 \"Antes\"",
+    "text 14 36 \"Marca:\"",
+    "text 14 43 \"DEPOIS\"",
+
+    "text 23 2 \"ENTER=CONFIRMA  PF3=MENU\"",
+    "on ENTER goto VALIDACAO_OK",
+    "on PF3 goto MENU",
+
+    "screen VALIDACAO_OK",
+    "text 1 1 \"FAKE3270 - VALIDACAO OK\"",
+    "text 2 25 \"DADOS CAPTURADOS\"",
+    "text 4 10 \"InputR: ${inputr}\"",
+    "text 5 10 \"InputL: ${inputl}\"",
+    "text 6 10 \"InputT: ${inputt}\"",
+    "text 7 10 \"InputB: ${inputb}\"",
+    "text 8 10 \"Descricao: ${desc}\"",
+    "text 23 2 \"PF3=MENU  ENTER=MENU\"",
+    "on PF3 goto MENU",
+    "on ENTER goto MENU",
+
+    /* ============================================================
+     * TABELA CLIENTES
+     * ============================================================ */
+    "screen TABELA",
+    "text 1 1 \"FAKE3270 - TABELA DE CLIENTES\"",
+    "text 2 25 \"LISTA DE CLIENTES\"",
+    "text 4 5 \"COD    NOME                 CIDADE          STATUS\"",
+    "text 5 5 \"-----  -------------------  --------------  ------\"",
+    "text 6 5 \"00001  JOAO DA SILVA        SAO PAULO       ATIVO\"",
+    "text 7 5 \"00002  MARIA OLIVEIRA       RIO DE JANEIRO  ATIVO\"",
+    "text 8 5 \"00003  PEDRO SANTOS         BELO HORIZONTE  BLOQUE\"",
+    "text 9 5 \"00004  ANA COSTA            CURITIBA        INATIV\"",
+    "text 10 5 \"00005  CARLOS SOUZA         BRASILIA        ATIVO\"",
+    "text 12 5 \"Filtro:\"",
+    "field 12 13 10 name=filtro",
+    "text 13 5 \"Total:\"",
+    "text 13 12 \"5\"",
+    "text 23 2 \"ENTER=BUSCAR  PF3=MENU\"",
+    "on ENTER goto TABELA message \"FILTRO APLICADO\"",
+    "on PF3 goto MENU",
+
+    /* ============================================================
+     * EXTRATO
+     * ============================================================ */
+    "screen EXTRATO",
+    "text 1 1 \"FAKE3270 - EXTRATO\"",
+    "text 2 25 \"EXTRATO BANCARIO\"",
+    "text 4 5 \"DATA        HISTORICO              VALOR\"",
+    "text 5 5 \"----------  ---------------------  ----------\"",
+    "text 6 5 \"01/10/2026  CREDITO SALARIO        + 5.000,00\"",
+    "text 7 5 \"05/10/2026  DEBITO CARTAO          -   320,50\"",
+    "text 8 5 \"10/10/2026  TED RECEBIDA           + 1.200,00\"",
+    "text 9 5 \"15/10/2026  PAGTO CONTA LUZ        -   180,00\"",
+    "text 11 5 \"Saldo:\"",
+    "text 11 12 \"R$ 5.699,50\"",
+    "text 23 2 \"PF3=MENU  ENTER=MENU\"",
+    "on PF3 goto MENU",
+    "on ENTER goto MENU",
+
+    /* ============================================================
+     * TRANSFERENCIA
+     * ============================================================ */
+    "screen TRANSFERENCIA",
+    "text 1 1 \"FAKE3270 - TRANSFERENCIA\"",
+    "text 2 25 \"TRANSFERENCIA ENTRE CONTAS\"",
+    "text 4 10 \"Conta destino:\"",
+    "field 4 25 10 name=conta",
+    "text 5 10 \"Valor:\"",
+    "field 5 17 12 name=valor",
+    "text 6 10 \"Tipo:\"",
+    "text 6 16 \"TED\"",
+    "text 8 10 \"Obs:\"",
+    "field 8 15 40 name=obs",
+    "text 23 2 \"ENTER=CONFIRMA  PF3=CANCELA\"",
+    "on ENTER conta=* valor=* goto TRANSF_OK",
+    "on ENTER goto TRANSFERENCIA message \"INFORME CONTA E VALOR\"",
+    "on PF3 goto MENU",
+
+    "screen TRANSF_OK",
+    "text 1 1 \"FAKE3270 - TRANSFERENCIA OK\"",
+    "text 2 25 \"TRANSFERENCIA EFETUADA\"",
+    "text 4 10 \"Conta: ${conta}\"",
+    "text 5 10 \"Valor: ${valor}\"",
+    "text 6 10 \"Obs: ${obs}\"",
+    "text 8 10 \"Protocolo:\"",
+    "text 8 21 \"TF-2026-00042\"",
+    "text 23 2 \"PF3=MENU  ENTER=MENU\"",
+    "on PF3 goto MENU",
+    "on ENTER goto MENU",
+
     NULL
 };
 
@@ -667,9 +859,23 @@ static void emit_ascii(int r0, int c0, int rows, int cols) {
     render(g, 0);
     if (r0 < 0) r0 = 0;
     if (c0 < 0) c0 = 0;
+    if (cols < 1) cols = 1;
+    if (rows < 1) rows = 1;
+
     for (int r = r0; r < r0 + rows && r < ROWS; r++) {
         printf("data: ");
-        for (int c = c0; c < c0 + cols && c < COLS; c++) putchar(g[r][c]);
+        int written = 0;
+        for (int c = c0; c < c0 + cols && c < COLS; c++) {
+            char ch = g[r][c];
+            /* nunca emite \0 — sempre espaco ou caractere visivel */
+            putchar(ch ? ch : ' ');
+            written++;
+        }
+        /* completa ate a largura solicitada (ex.: 80 no Ascii completo) */
+        while (written < cols) {
+            putchar(' ');
+            written++;
+        }
         putchar('\n');
     }
 }
