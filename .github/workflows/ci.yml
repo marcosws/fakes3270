@@ -3,6 +3,19 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_dispatch:
+    inputs:
+      acao:
+        description: "Etapa a executar manualmente"
+        required: true
+        default: testar
+        type: choice
+        options:
+          - compilar
+          - testar
+
+permissions:
+  contents: read
 
 jobs:
   build-and-test:
@@ -26,12 +39,21 @@ jobs:
           mkdir -p bin/windows-x64
           gcc -std=c99 -O2 -static -o bin/windows-x64/fakes3270.exe src/fakes3270.c
 
-      - name: Teste de fumaca do FakeS3270
+      - name: Executar testes do FakeS3270
+        if: github.event_name != 'workflow_dispatch' || inputs.acao != 'compilar'
         shell: bash
         run: |
           if [ "$RUNNER_OS" = "Windows" ]; then BIN=bin/windows-x64/fakes3270.exe; else BIN=bin/linux-x64/fakes3270; fi
           tests/smoke.sh "$BIN"
           python3 tests/emulator_contract.py "$BIN"
+
+      - name: Publicar binario
+        uses: actions/upload-artifact@v4
+        with:
+          name: fakes3270-${{ runner.os }}
+          path: ${{ runner.os == 'Windows' && 'bin/windows-x64/fakes3270.exe' || 'bin/linux-x64/fakes3270' }}
+          if-no-files-found: error
+          retention-days: 7
 
       # Exporta o caminho para a biblioteca de automação usar como se fosse o s3270
       - name: Definir S3270_PATH
