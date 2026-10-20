@@ -27,6 +27,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
       # Opcao A (recomendada): compilar o FakeS3270 a partir do codigo C em cada runner
       - name: Compilar FakeS3270 (Linux)
         if: runner.os == 'Linux'
@@ -44,8 +49,8 @@ jobs:
         shell: bash
         run: |
           if [ "$RUNNER_OS" = "Windows" ]; then BIN=bin/windows-x64/fakes3270.exe; else BIN=bin/linux-x64/fakes3270; fi
-          tests/smoke.sh "$BIN"
-          python3 tests/emulator_contract.py "$BIN"
+          bash tests/smoke.sh "$BIN"
+          python tests/emulator_contract.py "$BIN"
 
       - name: Publicar binario
         uses: actions/upload-artifact@v4
