@@ -1,0 +1,12 @@
+# Exemplo de cenario customizado (linhas/colunas 1-based)
+screen CICS
+text 1 2 "CICS FAKE"
+text 3 2 "TRANSACAO:"
+field 3 13 4 name=tran
+on ENTER tran=ABCD goto RESULTADO
+on ENTER goto CICS message "TRANSACAO NAO RECONHECIDA"
+on PF3 disconnect
+
+screen RESULTADO
+text 1 2 "ABCD EXECUTADA COM SUCESSO"
+on PF3 goto CICS

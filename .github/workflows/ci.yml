@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Opcao A (recomendada): compilar o FakeS3270 a partir do codigo C em cada runner
+      - name: Compilar FakeS3270 (Linux)
+        if: runner.os == 'Linux'
+        run: make linux
+
+      - name: Compilar FakeS3270 (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          mkdir -p bin/windows-x64
+          gcc -std=c99 -O2 -static -o bin/windows-x64/fakes3270.exe src/fakes3270.c
+
+      - name: Teste de fumaca do FakeS3270
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then BIN=bin/windows-x64/fakes3270.exe; else BIN=bin/linux-x64/fakes3270; fi
+          tests/smoke.sh "$BIN"
+          python3 tests/emulator_contract.py "$BIN"
+
+      # Exporta o caminho para a biblioteca de automação usar como se fosse o s3270
+      - name: Definir S3270_PATH
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then echo "S3270_PATH=$GITHUB_WORKSPACE/bin/windows-x64/fakes3270.exe" >> "$GITHUB_ENV"
+          else echo "S3270_PATH=$GITHUB_WORKSPACE/bin/linux-x64/fakes3270" >> "$GITHUB_ENV"; fi
+
+      # Substitua pelo comando de testes de integracao da sua biblioteca
+      # - name: Testes de integracao
+      #   run: ./gradlew integrationTest   # ou mvn verify / go test ./... / etc.
