@@ -1,5 +1,5 @@
 CC      ?= gcc
-CFLAGS  ?= -std=c99 -Wall -Wextra -O2 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE
+CFLAGS  ?= -std=c99 -Wall -Wextra -O2 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -D_GNU_SOURCE
 MINGW   ?= x86_64-w64-mingw32-gcc
 
 all: linux
@@ -13,7 +13,7 @@ windows:
 	$(MINGW) $(CFLAGS) -static -o bin/windows-x64/fakes3270.exe src/fakes3270.c
 
 test: linux
-	tests/smoke.sh bin/linux-x64/fakes3270
+	bash tests/smoke.sh bin/linux-x64/fakes3270
 	python3 tests/emulator_contract.py bin/linux-x64/fakes3270
 
 clean:
