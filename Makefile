@@ -1,12 +1,12 @@
 CC      ?= gcc
-CFLAGS  ?= -std=c99 -Wall -Wextra -O2
+CFLAGS  ?= -std=c99 -Wall -Wextra -O2 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE
 MINGW   ?= x86_64-w64-mingw32-gcc
 
 all: linux
 
 linux:
 	mkdir -p bin/linux-x64
-	$(CC) $(CFLAGS) -D_POSIX_C_SOURCE=200809L -o bin/linux-x64/fakes3270 src/fakes3270.c
+	$(CC) $(CFLAGS) -o bin/linux-x64/fakes3270 src/fakes3270.c
 
 windows:
 	mkdir -p bin/windows-x64
