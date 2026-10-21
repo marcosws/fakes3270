@@ -94,6 +94,20 @@ def send_text_by_field(s, field, text):
     move_and_send(s, pos[0] - 1, pos[1] - 1, text)
 
 
+def get_positions_field(screen, field):
+    """Retorna todas as ocorrencias de um rotulo, em ordem de tela."""
+    positions = []
+    for i, line in enumerate(screen.split("\n")):
+        start = 0
+        while True:
+            c = line.find(field, start)
+            if c < 0:
+                break
+            positions.append((i + 1, c + len(field) + 1))
+            start = c + len(field)
+    return positions
+
+
 def send_text_by_field_offset(s, field, text, off_row, off_col):
     pos = get_position_field(ascii_screen(s).replace("data:", ""), field)
     row, col = pos
@@ -297,6 +311,18 @@ def run(binary):
     s.send("Enter")
     check("VALIDACAO preserva dados digitados", has(s, "InputR: ABC") and has(s, "InputL: DEF") and
           has(s, "Descricao: TESTE DE CONTRATO"))
+    s.send("PF(3)")
+
+    select_menu(s, "9")
+    check("menu 9 -> CAMPOS REPETIDOS", has(s, "VALIDACAO DE NOMES REPETIDOS"))
+    positions = get_positions_field(ascii_screen(s).replace("data:", ""), "Nome:")
+    check("CAMPOS REPETIDOS exibe tres rotulos Nome:", len(positions) == 3, repr(positions))
+    for position, value in zip(positions, ("ANA", "BIA", "CARLA")):
+        move_and_send(s, position[0] - 1, position[1] - 1, value)
+    s.send("Enter")
+    check("CAMPOS REPETIDOS preserva cada ocorrencia",
+          has(s, "Nome principal: ANA") and has(s, "Nome social: BIA") and
+          has(s, "Nome responsavel: CARLA"))
     s.send("PF(3)")
 
     select_menu(s, "5")

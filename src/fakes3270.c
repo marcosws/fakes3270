@@ -138,6 +138,7 @@ static const char *default_scenario[] = {
     "text 10 10 \"6 - EXTRATO\"",
     "text 11 10 \"7 - TRANSFERENCIA\"",
     "text 12 10 \"8 - SAIR\"",
+    "text 13 10 \"9 - CAMPOS COM NOMES REPETIDOS\"",
     "text 14 10 \"Opcao ==>\"",
     "field 14 20 1 name=opt",
     "text 23 2 \"ENTER=CONFIRMA  PF3=LOGIN\"",
@@ -149,8 +150,38 @@ static const char *default_scenario[] = {
     "on ENTER opt=6 goto EXTRATO",
     "on ENTER opt=7 goto TRANSFERENCIA",
     "on ENTER opt=8 disconnect",
+    "on ENTER opt=9 goto REPETIDOS",
     "on ENTER goto MENU message \"OPCAO INVALIDA\"",
     "on PF3 goto LOGIN",
+
+    /* ============================================================
+     * REPETIDOS - rotulos iguais em campos de entrada distintos.
+     * Permite testar clientes que precisam posicionar o cursor na
+     * ocorrencia correta antes de enviar texto.
+     * ============================================================ */
+    "screen REPETIDOS",
+    "text 1 1 \"FAKE3270 - CAMPOS REPETIDOS\"",
+    "text 2 20 \"VALIDACAO DE NOMES REPETIDOS\"",
+    "text 4 10 \"Nome:\"",
+    "field 4 16 20 name=nome_principal",
+    "text 6 10 \"Nome:\"",
+    "field 6 16 20 name=nome_social",
+    "text 8 10 \"Nome:\"",
+    "field 8 16 20 name=nome_responsavel",
+    "text 10 10 \"Preencha cada campo da lista\"",
+    "text 23 2 \"ENTER=CONFIRMA  PF3=MENU\"",
+    "on ENTER goto REPETIDOS_OK",
+    "on PF3 goto MENU",
+
+    "screen REPETIDOS_OK",
+    "text 1 1 \"FAKE3270 - CAMPOS REPETIDOS OK\"",
+    "text 2 20 \"DADOS CAPTURADOS\"",
+    "text 4 10 \"Nome principal: ${nome_principal}\"",
+    "text 5 10 \"Nome social: ${nome_social}\"",
+    "text 6 10 \"Nome responsavel: ${nome_responsavel}\"",
+    "text 23 2 \"PF3=MENU  ENTER=MENU\"",
+    "on PF3 goto MENU",
+    "on ENTER goto MENU",
 
     /* ============================================================
      * SALDO
