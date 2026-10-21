@@ -54,7 +54,7 @@ Quit
 
 O cenário padrão aceita `TESTE`/`1234` e disponibiliza consultas, cadastro,
 relatório com atraso, validação de campos, tabela de clientes, extrato e
-transferência.
+transferência, além de uma tela com campos de entrada com o mesmo rótulo.
 
 ## Cenários personalizados
 

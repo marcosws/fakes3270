@@ -43,6 +43,9 @@ check "menu 6 -> extrato" "$out" "EXTRATO BANCARIO"
 out=$(run 'Connect(h)\nString("TESTE")\nTab\nString("1234")\nEnter\nString("7")\nEnter\nAscii()\nQuit\n')
 check "menu 7 -> transferencia" "$out" "TRANSFERENCIA ENTRE CONTAS"
 
+out=$(run 'Connect(h)\nString("TESTE")\nTab\nString("1234")\nEnter\nString("9")\nEnter\nAscii()\nQuit\n')
+check "menu 9 -> campos repetidos" "$out" "VALIDACAO DE NOMES REPETIDOS"
+
 out=$(run 'Connect(h)\nString("TESTE")\nTab\nString("1234")\nEnter\nString("8")\nEnter\nQuery(ConnectionState)\nQuit\n')
 check "menu 8 desconecta" "$out" "data: not-connected"
 

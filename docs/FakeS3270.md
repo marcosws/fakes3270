@@ -132,11 +132,15 @@ on PF3 disconnect
 
 ### Cenário embutido
 
-`LOGIN` (`TESTE`/`1234`) → `MENU` (1 saldo, 2 cadastro, 3 relatório **lento**, 4 sair) → `SALDO`,
+`LOGIN` (`TESTE`/`1234`) → `MENU` (1 saldo, 2 cadastro, 3 relatório **lento**, 4 validação,
+5 tabela, 6 extrato, 7 transferência, 8 sair, 9 campos repetidos) → `SALDO`,
 `CADASTRO` → `CADASTRO_OK`, `RELATORIO`. `PF3` volta. A tela `CADASTRO` traz textos preparados para os
 métodos de leitura: `getTextByField("Status:", 5)` → `ATIVO`, `getTextByField("Situacao:", 2)` → `OK`,
 `getTextBeforeField("Situacao:", 8)` → `REF-0001`, `getTextBottonField("Codigo", 6, 1)` → `000123`,
 `getTextTopField("000123", 6, 1)` → `Codigo`.
+
+A tela `REPETIDOS` possui três rótulos `Nome:` e campos distintos. Ela permite validar clientes que
+localizam cada ocorrência e enviam o texto na posição de cursor correspondente.
 
 ## Asserts nos testes
 
